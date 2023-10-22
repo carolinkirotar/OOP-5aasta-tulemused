@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd 
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib
 import researchpy as rp
 import scipy.stats as stats
 import statsmodels.api as sm
@@ -21,20 +22,26 @@ df_copy[cols[1:]] = df_copy[cols[1:]].apply(pd.to_numeric, errors='coerce')
 
 df_copy['aasta'] = df_copy['aasta'].astype(str)
 
-focused_row = 'KodutöödeLõpptulemus'
+focused_row = "EnneEksamit"
 
 # -------------------------------------------------------------
 
 sns.set_style("whitegrid", {'grid.color': '.8'})
+plt.subplots(figsize=(10, 8))
 
-plt.subplots(figsize=(8, 18))
+pal = sns.color_palette("magma")
+print(pal.as_hex())
+# VLAG --> ['#6e90bf', '#aab8d0', '#e4e5eb', '#f2dfdd', '#d9a6a4', '#c26f6d']
+# MAGMA --> ['#221150', '#5f187f', '#982d80', '#d3436e', '#f8765c', '#febb81']
 
-sns.violinplot(data=df_copy, x="aasta", y=focused_row, inner="quart", linewidth=1, scale="count", palette="vlag")
+ax = sns.violinplot(data=df_copy, x="aasta", y=focused_row, inner="quart", linewidth=1, scale="count", color='#221150')
+plt.setp(ax.collections, alpha=.3)
+
 box_plot = sns.boxplot(data=df_copy, x="aasta", y=focused_row,
                        boxprops={'zorder': 2, 'fill': None}, width=0.3, showmeans=True,
-                       meanprops={"marker":"o", "markerfacecolor":"darkred",
-                                  "markeredgecolor":"black","markersize":"15"})
-
+                       meanprops={"marker":"o", "markerfacecolor":"red",
+                                  "markeredgecolor":"black","markersize":"15"})   
+    
 # -----------------------------------------------------------
 
 # Mann-Whitney U-test
@@ -62,23 +69,22 @@ between21and222 = stats.mannwhitneyu(x=fourth_year[focused_row], y=fifth_year2[f
 between221and222 = stats.mannwhitneyu(x=fifth_year1[focused_row], y=fifth_year2[focused_row], alternative = 'two-sided')
 
 print("2018 ja 2019: " + str(between18and19))
-print("2018 ja 2020: " + str(between18and20))
+print("2018 ja 2020: " + str(between18and20) + str(round(between18and20.pvalue, 4)))
 print("2018 ja 2021: " + str(between18and21))
 print("2018 ja 2022.1: " + str(between18and221))
 print("2018 ja 2022.2: " + str(between18and222))
 print("2019 ja 2020: " + str(between19and20))
 print("2019 ja 2021: " + str(between19and21))
 print("2019 ja 2022.1: " + str(between19and221))
-print("2019 ja 2022.2: " + str(between19and222))
-print("2020 ja 2021: " + str(between20and21))
-print("2020 ja 2022.1: " + str(between20and221))
-print("2020 ja 2022.2: " + str(between20and222))
+print("2019 ja 2022.2: " + str(between19and222) + " " + str(round(between19and222.pvalue, 4)))
+print("2020 ja 2021: " + str(between20and21) + " " + str(round(between20and21.pvalue, 4)))
+print("2020 ja 2022.1: " + str(between20and221) + " " + str(round(between20and221.pvalue, 4)))
+print("2020 ja 2022.2: " + str(between20and222) + " " + str(round(between20and222.pvalue, 4)))
 print("2021 ja 2022.1: " + str(between21and221))
 print("2021 ja 2022.2: " + str(between21and222))
 print("2022.1 ja 2022.2: " + str(between221and222))
 
 # --------------------------------------------------------------------------
-
 # Kruskal-Wallis test
 
 tulemus = stats.kruskal(df_copy[focused_row][df_copy['aasta'] == '2018'],
@@ -86,7 +92,7 @@ tulemus = stats.kruskal(df_copy[focused_row][df_copy['aasta'] == '2018'],
                df_copy[focused_row][df_copy['aasta'] == '2020'],
                df_copy[focused_row][df_copy['aasta'] == '2021'],
                df_copy[focused_row][df_copy['aasta'] == '2022.1'],
-               df_copy[focused_row][df_copy['aasta'] == '2022.2'])
+               df_copy[focused_row][df_copy['aasta'] == '2022.2']         )
 print("\n")
 print("Kruskali test:" + str(tulemus))
 print(round(tulemus.pvalue, 4))
@@ -94,15 +100,15 @@ print(round(tulemus.pvalue, 4))
 # --------------------------------------------------------------------------
 
 # näidata keskmist ja sd keskel
-summary = rp.summary_cont(df_copy[focused_row].groupby(df_copy['aasta']))
 means = np.array(df_copy.groupby(['aasta'])[focused_row].mean())
 stds = np.array(df_copy.groupby(['aasta'])[focused_row].std())
+summary = rp.summary_cont(df_copy[focused_row].groupby(df_copy['aasta']))
 conf = np.array(summary['95% Conf.'])
 interval = np.array(summary['Interval'])
 
 for i in range(len(means)):
     text = ' μ={:.2f}\n σ={:.2f}\n 95% Conf=\n({:.2f}, {:.2f})'.format(means[i], stds[i], conf[i], interval[i])
-    box_plot.annotate(text, xy=(i, means[i]), xytext=(i+0.04, means[i]-1.5), ha='left', fontsize='8',
+    box_plot.annotate(text, xy=(i, means[i]), xytext=(i+0.04, means[i]-7.2), ha='left', fontsize='8',
                       bbox=dict(facecolor='white', edgecolor='grey', boxstyle='round,pad=1'))
 
 
@@ -121,13 +127,12 @@ nobs = ["(n: " + i + ")" for i in nobs]
 
 pos = range(len(nobs))
 for tick, label in zip(pos, box_plot.get_xticklabels()):
-   box_plot.text(pos[tick], -1.25, nobs[tick],
+   box_plot.text(pos[tick], -4.2, nobs[tick],
             ha='center',
             size='small')
 
 
-plt.ylim(-0.5, 13)
-
-plt.ylabel(focused_row, fontweight='bold')
+plt.ylim(-0.3, 70)
+plt.ylabel('Punktide seis enne eksamit \n (kodutööd, loengupunktid, rühmatööd, kontrolltööd)', fontweight='bold')
 plt.xlabel('Õppeaasta', fontweight='bold', labelpad=25)
 plt.show()
